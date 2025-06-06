@@ -1,187 +1,218 @@
-const axios = require("axios");
-require("dotenv").config();
+const axios = require('axios')
+const pool = require('./db') // Import MySQL pool
+require('dotenv').config()
 
 // --- Constants ---
-const API_URL = process.env.API_URL;
-const API_KEY = process.env.API_KEY;
-const VS_CURRENCY = process.env.VS_CURRENCY;
-const COIN_COUNT = parseInt(process.env.COIN_COUNT, 10);
-const REQUEST_INTERVAL_MS = parseInt(process.env.REQUEST_INTERVAL_MS, 10);
+const API_URL = process.env.API_URL
+const API_KEY = process.env.API_KEY
+const VS_CURRENCY = process.env.VS_CURRENCY
+const COIN_COUNT = parseInt(process.env.COIN_COUNT, 10) || 250
+const REQUEST_INTERVAL_MS =
+  parseInt(process.env.REQUEST_INTERVAL_MS, 10) || 300000
+
+// Validate environment variables
+if (!API_URL || !API_KEY || !VS_CURRENCY) {
+  console.error(
+    'Missing required environment variables (API_URL, API_KEY, VS_CURRENCY). Exiting.'
+  )
+  process.exit(1)
+}
 
 // --- API Request Headers and Parameters ---
 const HEADERS = {
-  accept: "application/json",
-  "x-cg-demo-api-key": API_KEY,
-};
+  accept: 'application/json',
+  'x-cg-demo-api-key': API_KEY,
+}
 const PARAMS = {
   vs_currency: VS_CURRENCY,
-  order: "market_cap_desc", // Order by market cap descending
-  per_page: COIN_COUNT, // Get the top N coins
-  page: 1, // Fetch the first page
-  sparkline: false, // We don't need sparkline data
-  // Note: 'ids' parameter is removed as we fetch by market cap rank now
-};
+  order: 'market_cap_desc',
+  per_page: COIN_COUNT,
+  page: 1,
+  sparkline: false,
+}
 
 // --- Functions ---
 
-/**
- * Fetches cryptocurrency market data from the CoinGecko API for top N coins.
- * @param {string} url - The API endpoint URL.
- * @param {object} headers - Request headers.
- * @param {object} params - Request query parameters.
- * @returns {Promise<object|null>} - A promise that resolves with the API data or null on error.
- */
 async function fetchCryptoData(url, headers, params) {
   try {
-    console.error(`Fetching top ${params.per_page} coins...`);
-    const response = await axios.get(url, { headers, params });
-    console.error(
+    console.log(`Fetching top ${params.per_page} coins...`)
+    const response = await axios.get(url, { headers, params })
+    console.log(
       `Successfully fetched data for ${
         response.data?.length || 0
       } coins at ${new Date().toISOString()}`
-    );
-    return response.data;
+    )
+    return response.data
   } catch (error) {
-    console.error(`Error fetching data from CoinGecko API: ${error.message}`);
+    console.error(`Error fetching data from CoinGecko API: ${error.message}`)
     if (error.response) {
-      console.error("Status:", error.response.status);
-      console.error("Headers:", error.response.headers);
-      console.error("Data:", error.response.data);
+      console.error('Status:', error.response.status)
+      console.error('Headers:', error.response.headers)
+      console.error('Data:', error.response.data)
     } else if (error.request) {
-      console.error("Request:", error.request);
-    } else {
-      console.error("Error", error.message);
+      console.error('Request:', error.request)
     }
-    return null;
+    return null
   }
 }
 
-/**
- * Parses the API response and formats it into the desired JSON structure.
- * @param {Array<object>|null} apiData - The raw data array from the API.
- * @returns {Array<object>} - An array of formatted coin data objects.
- */
 function parseData(apiData) {
-  const formattedData = [];
+  const formattedData = []
   if (!apiData || !Array.isArray(apiData)) {
-    return formattedData;
+    return formattedData
   }
 
   apiData.forEach((coinData) => {
     try {
+      // Chuyển đổi định dạng datetime sang YYYY-MM-DD HH:mm:ss
+      const lastUpdated = coinData?.last_updated
+        ? new Date(coinData.last_updated)
+            .toISOString()
+            .replace('T', ' ')
+            .replace(/\.(\d{3})Z$/, '') // Loại bỏ milliseconds và Z
+        : null
+
       const formattedItem = {
         name: coinData?.name,
-        symbol: coinData?.symbol?.toUpperCase(), // Ensure symbol is uppercase
-        price: coinData?.current_price,
-        market_cap: coinData?.market_cap,
-        market_cap_rank: coinData?.market_cap_rank, // Added rank
-        total_volume: coinData?.total_volume,
-        high_24h: coinData?.high_24h,
-        low_24h: coinData?.low_24h,
-        price_change_percentage_24h: coinData?.price_change_percentage_24h,
-        market_cap_change_percentage_24h:
-          coinData?.market_cap_change_percentage_24h,
-        last_updated: coinData?.last_updated,
-      };
+        symbol: coinData?.symbol?.toUpperCase(),
+        price: Number(coinData?.current_price),
+        market_cap: Number(coinData?.market_cap),
+        market_cap_rank: Number(coinData?.market_cap_rank),
+        total_volume: Number(coinData?.total_volume),
+        high_24h: Number(coinData?.high_24h),
+        low_24h: Number(coinData?.low_24h),
+        price_change_percentage_24h: Number(
+          coinData?.price_change_percentage_24h
+        ),
+        market_cap_change_percentage_24h: Number(
+          coinData?.market_cap_change_percentage_24h
+        ),
+        last_updated: lastUpdated, // Định dạng: '2025-06-06 23:25:38'
+      }
 
-      // Basic validation to ensure essential fields are present (excluding potentially null change percentages)
       const essentialFields = [
-        "name",
-        "symbol",
-        "price",
-        "market_cap",
-        "market_cap_rank",
-        "total_volume",
-        "high_24h",
-        "low_24h",
-        "last_updated",
-      ];
+        'name',
+        'symbol',
+        'price',
+        'market_cap',
+        'market_cap_rank',
+        'total_volume',
+        'high_24h',
+        'low_24h',
+        'last_updated',
+      ]
       const hasEssentialData = essentialFields.every(
         (field) =>
           formattedItem[field] !== undefined &&
           formattedItem[field] !== null &&
-          formattedItem[field] !== ""
-      );
+          formattedItem[field] !== ''
+      )
 
       if (hasEssentialData) {
-        formattedData.push(formattedItem);
+        formattedData.push(formattedItem)
       } else {
         console.error(
           `Warning: Missing essential data for coin ${coinData?.id} (Rank: ${coinData?.market_cap_rank}), skipping.`
-        );
-        // console.error(`Raw data: ${JSON.stringify(coinData)}`); // Uncomment for detailed debugging
+        )
       }
     } catch (error) {
       console.error(
         `Error parsing data for coin ${coinData?.id}: ${error.message}`
-      );
-      // console.error(`Raw data: ${JSON.stringify(coinData)}`); // Uncomment for detailed debugging
+      )
     }
-  });
+  })
 
-  return formattedData;
+  return formattedData
 }
 
-/**
- * Placeholder function to send data to Kafka or RabbitMQ.
- * @param {object} data - The formatted coin data object.
- */
-function sendToMessageQueue(data) {
-  // --- Placeholder: Replace with your Kafka/RabbitMQ producer code ---
-  // Example: print the JSON data to stdout
-  console.log(JSON.stringify(data, null, 2));
-  // console.error(`Placeholder: Sending data for ${data.name} to message queue.`);
-  // --- End Placeholder ---
+async function saveToDatabase(data) {
+  let connection
+  try {
+    connection = await pool.getConnection()
+    await connection.beginTransaction()
+
+    for (const coin of data) {
+      // Insert or get cryptocurrency ID
+      let [rows] = await connection.query(
+        'INSERT INTO cryptocurrencies (name, symbol) VALUES (?, ?) ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)',
+        [coin.name, coin.symbol]
+      )
+      const cryptoId =
+        rows.insertId ||
+        (
+          await connection.query(
+            'SELECT id FROM cryptocurrencies WHERE symbol = ?',
+            [coin.symbol]
+          )
+        )[0][0].id
+
+      // Insert price history
+      await connection.query(
+        `INSERT INTO crypto_price_history (
+          cryptocurrency_id, price, market_cap, market_cap_rank, total_volume,
+          high_24h, low_24h, price_change_percentage_24h, market_cap_change_percentage_24h, timestamp
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          cryptoId,
+          coin.price,
+          coin.market_cap,
+          coin.market_cap_rank,
+          coin.total_volume,
+          coin.high_24h,
+          coin.low_24h,
+          coin.price_change_percentage_24h,
+          coin.market_cap_change_percentage_24h,
+          coin.last_updated,
+        ]
+      )
+    }
+
+    await connection.commit()
+    console.log(`Successfully saved ${data.length} coins to database.`)
+  } catch (error) {
+    if (connection) await connection.rollback()
+    console.error(`Error saving to database: ${error.message}`)
+  } finally {
+    if (connection) connection.release()
+  }
 }
 
-/**
- * Main function to fetch, parse, and send data periodically.
- */
 async function runCrawler() {
-  console.error(`\nFetching data at ${new Date().toISOString()}...`);
-  const rawData = await fetchCryptoData(API_URL, HEADERS, PARAMS);
+  console.log(`Fetching data at ${new Date().toISOString()}...`)
+  const rawData = await fetchCryptoData(API_URL, HEADERS, PARAMS)
 
   if (rawData) {
-    const parsedDataList = parseData(rawData);
+    const parsedDataList = parseData(rawData)
     if (parsedDataList.length > 0) {
-      console.error(
+      console.log(
         `Successfully parsed data for ${parsedDataList.length} coins.`
-      );
-      parsedDataList.forEach((coinJson) => {
-        sendToMessageQueue(coinJson);
-      });
+      )
+      await saveToDatabase(parsedDataList)
     } else {
-      console.error("No valid data parsed from the API response.");
+      console.error('No valid data parsed from the API response.')
     }
   } else {
-    console.error("Failed to fetch data, will retry next cycle.");
+    console.error('Failed to fetch data, will retry next cycle.')
   }
 }
 
 // --- Main Execution ---
-console.error(
-  `Starting Crypto Crawler (Node.js) for Top ${COIN_COUNT} coins...`
-);
-
-// Run immediately on start
-runCrawler();
-
-// Then run periodically
-const intervalId = setInterval(runCrawler, REQUEST_INTERVAL_MS);
-
-console.error(
+console.log(`Starting Crypto Crawler for Top ${COIN_COUNT} coins...`)
+runCrawler()
+setInterval(runCrawler, REQUEST_INTERVAL_MS)
+console.log(
   `Crawler will fetch data every ${REQUEST_INTERVAL_MS / 1000} seconds.`
-);
+)
 
 // Graceful shutdown
-process.on("SIGINT", () => {
-  console.error("\nCrawler stopped by user (SIGINT).");
-  clearInterval(intervalId);
-  process.exit(0);
-});
+process.on('SIGINT', async () => {
+  console.log('Crawler stopped by user (SIGINT).')
+  await pool.end()
+  process.exit(0)
+})
 
-process.on("SIGTERM", () => {
-  console.error("\nCrawler stopped (SIGTERM).");
-  clearInterval(intervalId);
-  process.exit(0);
-});
+process.on('SIGTERM', async () => {
+  console.log('Crawler stopped (SIGTERM).')
+  await pool.end()
+  process.exit(0)
+})
