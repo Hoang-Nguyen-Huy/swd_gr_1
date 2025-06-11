@@ -1,0 +1,129 @@
+version: '3'
+services:
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    restart: always
+    ports:
+      - 9870:9870
+      - 9000:9000
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/name
+    environment:
+      - CLUSTER_NAME=test
+    env_file:
+      - ./hadoop.env
+    networks:
+      - hadoop
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    restart: always
+    volumes:
+      - hadoop_datanode:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: 'namenode:9870'
+    env_file:
+      - ./hadoop.env
+    networks:
+      - hadoop
+
+  datanode2:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode2
+    restart: always
+    volumes:
+      - hadoop_datanode2:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: 'namenode:9870'
+    env_file:
+      - ./hadoop.env
+    networks:
+      - hadoop
+
+  datanode3:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode3
+    restart: always
+    volumes:
+      - hadoop_datanode3:/hadoop/dfs/data
+    environment:
+      SERVICE_PRECONDITION: 'namenode:9870'
+    env_file:
+      - ./hadoop.env
+    networks:
+      - hadoop
+
+  resourcemanager:
+    image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
+    container_name: resourcemanager
+    restart: always
+    environment:
+      SERVICE_PRECONDITION: 'namenode:9000 namenode:9870 datanode:9864'
+    env_file:
+      - ./hadoop.env
+    networks:
+      - hadoop
+
+  nodemanager1:
+    image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
+    container_name: nodemanager
+    restart: always
+    environment:
+      SERVICE_PRECONDITION: 'namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088'
+    env_file:
+      - ./hadoop.env
+    networks:
+      - hadoop
+
+  spark:
+    image: bitnami/spark:3.3
+    container_name: spark
+    user: root
+    restart: always
+    networks:
+      - hadoop
+    volumes:
+      - ./hadoop-conf:/opt/bitnami/spark/conf/hadoop-conf
+      - ./script:/opt/bitnami/spark/script
+    ports:
+      - 8080:8080
+      - 7077:7077
+
+  nifi:
+    image: apache/nifi:1.26.0
+    container_name: nifi
+    ports:
+      - 8443:8443
+    networks:
+      - hadoop
+    environment:
+      - SINGLE_USER_CREDENTIALS_USERNAME=admin
+      - SINGLE_USER_CREDENTIALS_PASSWORD=admin123
+    volumes:
+      - ./hadoop-conf:/opt/nifi/nifi-current/conf/hadoop-conf
+
+  mysql:
+    image: mysql:latest
+    container_name: mysql-db
+    ports:
+      - 3306:3306
+    networks:
+      - hadoop
+    environment:
+      MYSQL_ROOT_PASSWORD: mysql
+    volumes:
+      - mysql-data:/var/lib/mysql
+
+volumes:
+  hadoop_namenode:
+  hadoop_datanode:
+  hadoop_datanode2:
+  hadoop_datanode3:
+  hadoop_historyserver:
+  mysql-data:
+
+networks:
+  hadoop:
+    driver: bridge
