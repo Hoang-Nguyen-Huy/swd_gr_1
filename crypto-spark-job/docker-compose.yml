@@ -1,0 +1,22 @@
+version: '3.9'
+
+services:
+  spark-job:
+    build: .
+    container_name: crypto_spark_job
+    ports:
+      - '4040:4040' # Spark UI port
+      - '8080:8080' # Spark master port
+    image: crypto-spark-job:latest
+    command: >
+      spark-submit
+      --packages org.apache.spark:spark-avro_2.13:3.5.1,org.apache.spark:spark-sql-kafka-0-10_2.13:3.5.1
+      /app/main.py
+    tty: true
+    stdin_open: true
+    networks:
+      - hadoop_hadoop
+
+networks:
+  hadoop_hadoop:
+    external: true
