@@ -77,20 +77,6 @@ services:
     networks:
       - hadoop
 
-  spark:
-    image: bitnami/spark:3.3
-    container_name: spark
-    user: root
-    restart: always
-    networks:
-      - hadoop
-    volumes:
-      - ./hadoop-conf:/opt/bitnami/spark/conf/hadoop-conf
-      - ./script:/opt/bitnami/spark/script
-    ports:
-      - 8080:8080
-      - 7077:7077
-
   nifi:
     image: apache/nifi:1.26.0
     container_name: nifi
