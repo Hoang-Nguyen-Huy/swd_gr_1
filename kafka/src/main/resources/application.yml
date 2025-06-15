@@ -10,7 +10,5 @@ kafka:
     bootstrap-servers: kafka1:29092
     group-id: place_holder
     key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-    properties:
-      spring.json.trusted.packages: '*'
-      spring.json.value.default.type: com.example.swd.models.CryptoEvent
+    value-deserializer: org.springframework.kafka.support.serializer.StringDeserializer
+
