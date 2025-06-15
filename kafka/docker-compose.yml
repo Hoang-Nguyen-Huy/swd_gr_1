@@ -1,0 +1,19 @@
+version: '3.9'
+
+services:
+  websocket-app:
+    image: websocket-app:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "9090:9090"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - KAFKA_CONSUMER_BOOTSTRAP_SERVERS=kafka1:29092
+    networks:
+      - hadoop_hadoop
+
+networks:
+  hadoop_hadoop:
+    external: true
