@@ -23,7 +23,7 @@ public class Consumer {
             ObjectMapper mapper = new ObjectMapper();
             CryptoEvent event = mapper.readValue(json, CryptoEvent.class);
             System.out.println("Deserialized event: " + event);
-            // socketController.sendMessageToClients(event); // example usage
+             socketController.sendCryptoEvent(event);
         } catch (Exception e) {
             e.printStackTrace();
         }
