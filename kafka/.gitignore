@@ -1,0 +1,64 @@
+# Java build output
+/target/
+
+# Maven
+.mvn/
+!**/src/main/**/maven-wrapper.jar
+**/pom.xml.tag
+**/pom.xml.releaseBackup
+**/pom.xml.versionsBackup
+**/pom.xml.next
+release.properties
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Eclipse
+.project
+.classpath
+.c9/
+.settings/
+*.launch
+.buildpath
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment files
+.env
+*.env
+
+# Spring Boot devtools
+.spring-boot-devtools.properties
+
+# Testing
+/test-output/
+/surefire-reports/
+/jacoco.exec
+
+# Local configuration
+application-local.yml
+application-dev.yml
+application-local.properties
+application-dev.properties
+
+# Docker
+*.jar
+*.war
+docker-compose.override.yml
+
+# Node (if front-end is embedded)
+node_modules/
+dist/
+build/
