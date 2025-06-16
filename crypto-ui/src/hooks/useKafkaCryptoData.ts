@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { webSocketService } from '../services/websocketService';
-import { KafkaCryptoEvent } from '../types/crypto';
+import { useState, useEffect, useCallback } from "react";
+import { webSocketService } from "../services/websocketService";
+import { KafkaCryptoEvent } from "../types/crypto";
 
 interface UseKafkaCryptoDataReturn {
   cryptoEvents: KafkaCryptoEvent[];
@@ -21,19 +21,20 @@ const useKafkaCryptoData = (): UseKafkaCryptoDataReturn => {
       setError(null);
 
       // Subscribe to crypto topic
-      webSocketService.subscribe('/topic/crypto', (event: KafkaCryptoEvent) => {
-        console.log('Received crypto event:', event);
-        
-        setCryptoEvents(prevEvents => {
+      webSocketService.subscribe("/topic/crypto", (event: KafkaCryptoEvent) => {
+        console.log("Received crypto event:", event);
+
+        setCryptoEvents((prevEvents) => {
           // Keep only the latest 100 events to prevent memory issues
           const updatedEvents = [event, ...prevEvents].slice(0, 100);
           return updatedEvents;
         });
       });
-
     } catch (err) {
-      console.error('Failed to connect to WebSocket:', err);
-      setError(err instanceof Error ? err.message : 'Failed to connect to WebSocket');
+      console.error("Failed to connect to WebSocket:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to connect to WebSocket"
+      );
       setConnectionStatus(false);
     }
   }, []);
