@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  crypto-ui:
+    image: node:18-alpine
+    container_name: crypto-ui
+    working_dir: /app
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=/crypto_data.json
+      - VITE_REFRESH_INTERVAL=60000
+      - VITE_WEBSOCKET_URL=http://localhost:9090/ws
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: sh -c "npm install --force && npm run dev -- --host 0.0.0.0"
+    restart: unless-stopped
