@@ -46,6 +46,13 @@ swd_gr_1/
 │   ├── Dockerfile              # Container definition
 │   ├── requirements.txt        # Python dependencies
 │   └── README.md               # Spark job documentation
+├── crypto-ui/                  # Frontend dashboard
+│   ├── src/                    # React TypeScript source code
+│   ├── components/             # UI components for data visualization
+│   ├── hooks/                  # Custom React hooks for data fetching
+│   ├── services/               # WebSocket and API services
+│   ├── package.json            # Node.js dependencies
+│   └── README.md               # Frontend documentation
 └── kafka/                      # Stream consumption
     ├── src/                    # Spring Boot Kafka consumer
     ├── pom.xml                 # Maven dependencies
@@ -94,6 +101,17 @@ swd_gr_1/
   - Java 21 + Spring Boot 3.5.0
   - Kafka integration for real-time consumption
   - WebSocket support for real-time web interfaces
+
+### 5. Frontend Dashboard (`crypto-ui/`)
+
+- **Technology**: React + TypeScript + Vite
+- **Function**: Real-time data visualization dashboard
+- **Features**:
+  - Real-time crypto data display via WebSocket
+  - Interactive charts and tables
+  - Dual data sources: Static JSON and live Kafka streams
+  - Responsive design with Tailwind CSS
+  - ShadCN UI component library integration
 
 ## 🔄 Data Flow Pipeline
 
@@ -161,6 +179,16 @@ cd kafka/
 ./mvnw spring-boot:run
 ```
 
+### 5. Launch Frontend Dashboard
+
+```bash
+cd crypto-ui/
+npm install --legacy-peer-deps
+npm run dev
+```
+
+Access the dashboard at http://localhost:5173
+
 ## 📊 Monitoring & Access Points
 
 ### Web Interfaces
@@ -169,10 +197,11 @@ cd kafka/
 - **YARN ResourceManager**: http://localhost:8088
 - **Apache NiFi**: https://localhost:8443 (admin/admin123)
 - **Spark UI**: http://localhost:4040
+- **Crypto Dashboard**: http://localhost:5173
 
 ### API Endpoints
 
-- **Spring Boot App**: http://localhost:8080
+- **Spring Boot App**: http://localhost:9090
 - **MySQL Database**: localhost:3306
 
 ## 📈 Key Metrics & Analytics
