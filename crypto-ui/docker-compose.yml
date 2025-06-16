@@ -16,3 +16,8 @@ services:
       - /app/node_modules
     command: sh -c "npm install --force && npm run dev -- --host 0.0.0.0"
     restart: unless-stopped
+    networks:
+      - hadoop_hadoop
+networks:
+  hadoop_hadoop:
+    external: true
