@@ -1,5 +1,6 @@
 const axios = require('axios')
 const pool = require('./db') // Import MySQL pool
+const { Kafka } = require('kafkajs')
 require('dotenv').config()
 
 // --- Constants ---
@@ -9,6 +10,18 @@ const VS_CURRENCY = process.env.VS_CURRENCY
 const COIN_COUNT = parseInt(process.env.COIN_COUNT, 10) || 250
 const REQUEST_INTERVAL_MS =
   parseInt(process.env.REQUEST_INTERVAL_MS, 10) || 300000
+
+// Kafka Configuration
+const KAFKA_BROKER = process.env.KAFKA_BROKER || 'localhost:9092'
+const KAFKA_TOPIC = process.env.KAFKA_TOPIC || 'crypto_events'
+
+// Initialize Kafka
+const kafka = new Kafka({
+  clientId: 'crypto-crawler',
+  brokers: [KAFKA_BROKER],
+})
+
+const producer = kafka.producer()
 
 // Validate environment variables
 if (!API_URL || !API_KEY || !VS_CURRENCY) {
@@ -177,6 +190,37 @@ async function saveToDatabase(data) {
   }
 }
 
+async function sendToKafka(data) {
+  try {
+    // Connect producer if not already connected
+    await producer.connect()
+
+    const messages = data.map((coin, index) => ({
+      key: coin.symbol,
+      value: JSON.stringify({
+        cryptocurrency_id: index + 1, // Temporary ID, in production should use actual crypto ID
+        avg_price: coin.price,
+        avg_market_cap: coin.market_cap,
+        avg_market_cap_rank: coin.market_cap_rank,
+        avg_total_volume: coin.total_volume,
+        avg_high_24h: coin.high_24h,
+        avg_low_24h: coin.low_24h,
+        avg_price_change_pct: coin.price_change_percentage_24h || 0,
+        avg_market_cap_change_pct: coin.market_cap_change_percentage_24h || 0,
+      }),
+    }))
+
+    await producer.send({
+      topic: KAFKA_TOPIC,
+      messages: messages,
+    })
+
+    console.log(`Successfully sent ${messages.length} crypto events to Kafka topic: ${KAFKA_TOPIC}`)
+  } catch (error) {
+    console.error(`Error sending data to Kafka: ${error.message}`)
+  }
+}
+
 async function runCrawler() {
   console.log(`Fetching data at ${new Date().toISOString()}...`)
   const rawData = await fetchCryptoData(API_URL, HEADERS, PARAMS)
@@ -188,6 +232,7 @@ async function runCrawler() {
         `Successfully parsed data for ${parsedDataList.length} coins.`
       )
       await saveToDatabase(parsedDataList)
+      await sendToKafka(parsedDataList) // Send data to Kafka
     } else {
       console.error('No valid data parsed from the API response.')
     }
@@ -207,12 +252,14 @@ console.log(
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('Crawler stopped by user (SIGINT).')
+  await producer.disconnect()
   await pool.end()
   process.exit(0)
 })
 
 process.on('SIGTERM', async () => {
   console.log('Crawler stopped (SIGTERM).')
+  await producer.disconnect()
   await pool.end()
   process.exit(0)
 })
