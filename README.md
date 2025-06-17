@@ -161,8 +161,8 @@ docker-compose up -d
 ```bash
 cd crypto/
 npm install
-cp .env.example .env  # Configure your API keys
-node crypto_crawler.js
+cp .env.example .env
+docker-compose up -d
 ```
 
 ### 3. Deploy Spark Processing Job

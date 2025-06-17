@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  crypto-crawler:
+    image: node:18
+    container_name: crypto-crawler
+    working_dir: /app
+    volumes:
+      - ./:/app
+    env_file:
+      - .env
+    command: ['node', 'crypto_crawler.js']
+    networks:
+      - hadoop_hadoop
+    restart: unless-stopped
+
+networks:
+  hadoop_hadoop:
+    external: true
